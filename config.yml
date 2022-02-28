@@ -1,0 +1,24 @@
+switches:
+- name: living-room
+  model: "Akhan-100F14"
+  buttons:
+  - name: "off"
+    data: "0x4 (Mute)"
+  - name: low
+    data: "0x2 (Unlock)"
+  - name: high
+    data: "0x1 (Lock)"
+
+mappings:
+- switch: living-room
+  button: "off"
+  lights: [10]
+  payload: '{"on": false}'
+- switch: living-room
+  button: "low"
+  lights: [10]
+  payload: '{"on": true, "bri": 1}'
+- switch: living-room
+  button: "high"
+  lights: [10]
+  payload: '{"on": true, "bri": 128}'

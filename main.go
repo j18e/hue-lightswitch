@@ -1,0 +1,107 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"syscall"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
+
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	configFile := flag.String("config-file", "config.yml", "path to the config file")
+	tokenFile := flag.String("token-file", ".token", "path to the file containing the Hue user token")
+	hueHost := flag.String("hue-host", "", "IP/hostname of the Hue bridge")
+	flag.Parse()
+
+	if *hueHost == "" {
+		return errors.New("flag -hue-host is required")
+	}
+	tokenBS, err := os.ReadFile(*tokenFile)
+	if err != nil {
+		return err
+	}
+	if len(flag.Args()) > 0 {
+		arg := flag.Arg(0)
+		if arg == "lights" {
+			return printLights(*hueHost, string(tokenBS))
+		}
+		return fmt.Errorf("unknown arg %s", arg)
+	}
+
+	cfg, err := NewConfig(*configFile)
+	if err != nil {
+		return err
+	}
+
+	cli := &Client{
+		Config:  cfg,
+		HueHost: *hueHost,
+		Token:   string(tokenBS),
+		httpCli: &http.Client{Timeout: time.Second * 5},
+	}
+
+	signals := []os.Signal{syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM}
+	ctx, cancel := signal.NotifyContext(context.Background(), signals...)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "rtl_433", "-F", "json", "-M", "time:usec")
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	log.Info("started rtl_433 listener")
+
+	scanner := bufio.NewScanner(out)
+	for scanner.Scan() {
+		err := cli.ProcessEvent(scanner.Bytes())
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func printLights(host, token string) error {
+	url := fmt.Sprintf("http://%s/api/%s/lights", host, token)
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return fmt.Errorf("got status %d", res.StatusCode)
+	}
+	bs, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(bs))
+	return nil
+}

@@ -1,0 +1,4 @@
+/hue-lightswitch
+/.env
+/.token
+/hue-lightswitch.service
