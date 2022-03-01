@@ -13,7 +13,7 @@ build:
 
 deploy:
 	ssh $(TARGET) sudo systemctl stop hue-lightswitch
-	scp ./$(NAME) ./config.yml .token $(TARGET):
+	scp ./$(NAME) ./config.yml ./.token $(TARGET):
 	ssh $(TARGET) sudo systemctl start hue-lightswitch
 
 deploy-systemd:
@@ -23,5 +23,6 @@ deploy-systemd:
 	ssh $(TARGET) sudo chown root:root /etc/systemd/system/$(NAME).service
 	ssh $(TARGET) sudo systemctl daemon-reload
 	ssh $(TARGET) sudo systemctl start hue-lightswitch
+	rm -f $(SERVICE_FILE)
 
 all: build deploy deploy-systemd
