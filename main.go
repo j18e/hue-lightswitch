@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -41,7 +40,8 @@ func run() error {
 	if len(flag.Args()) > 0 {
 		arg := flag.Arg(0)
 		if arg == "lights" {
-			return printLights(*hueHost, string(tokenBS))
+			cli := &Client{HueHost: *hueHost, Token: string(tokenBS)}
+			return cli.PrintLights()
 		}
 		return fmt.Errorf("unknown arg %s", arg)
 	}
@@ -121,23 +121,4 @@ func webServer(ctx context.Context, listenAddr string) error {
 	case err := <-chErr:
 		return err
 	}
-}
-
-func printLights(host, token string) error {
-	url := fmt.Sprintf("http://%s/api/%s/lights", host, token)
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return fmt.Errorf("got status %d", res.StatusCode)
-	}
-	bs, err := io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(bs))
-	return nil
 }

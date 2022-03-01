@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -98,5 +99,25 @@ func (c *Client) MatchEvent(e Event) *Mapping {
 			return m
 		}
 	}
+	return nil
+}
+
+func (c *Client) PrintLights() error {
+	url := fmt.Sprintf("http://%s/api/%s/lights", c.HueHost, c.Token)
+	req, _ := http.NewRequest("GET", url, nil)
+	res, err := c.httpCli.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return fmt.Errorf("got status %d", res.StatusCode)
+	}
+	bs, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(bs))
 	return nil
 }
