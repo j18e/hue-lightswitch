@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -60,6 +62,25 @@ func run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), signals...)
 	defer cancel()
 
+	go func() {
+		err := webServer(ctx, ":8080")
+		if err != nil {
+			log.Errorf("web-server: got %s, shutting down", err)
+		}
+		cancel()
+	}()
+
+	for {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if err := runRTL(ctx, cli); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func runRTL(ctx context.Context, cli *Client) error {
 	cmd := exec.CommandContext(ctx, "rtl_433", "-F", "json", "-M", "time:usec")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -85,6 +106,21 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+func webServer(ctx context.Context, listenAddr string) error {
+	r := mux.NewRouter()
+	r.Handle("/metrics", promhttp.Handler())
+	chErr := make(chan error, 1)
+	go func() {
+		chErr <- http.ListenAndServe(listenAddr, r)
+	}()
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-chErr:
+		return err
+	}
 }
 
 func printLights(host, token string) error {
