@@ -25,4 +25,7 @@ deploy-systemd:
 	ssh $(TARGET) sudo systemctl start hue-lightswitch
 	rm -f $(SERVICE_FILE)
 
+logs:
+	ssh $(TARGET) sudo journalctl -u $(NAME) -f
+
 all: build deploy deploy-systemd
