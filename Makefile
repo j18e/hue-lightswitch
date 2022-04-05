@@ -18,6 +18,7 @@ deploy:
 
 deploy-systemd:
 	sed "s/__HUE_HOST__/$(HUE_BRIDGE)/g" $(SERVICE_TPL) > $(SERVICE_FILE)
+	sed "s/__DAEMON_USER__/$(DAEMON_USER)/g" $(SERVICE_TPL) > $(SERVICE_FILE)
 	scp ./$(NAME).service $(TARGET):
 	ssh $(TARGET) sudo mv $(NAME).service /etc/systemd/system
 	ssh $(TARGET) sudo chown root:root /etc/systemd/system/$(NAME).service
