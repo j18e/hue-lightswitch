@@ -17,8 +17,10 @@ deploy:
 	ssh $(TARGET) sudo systemctl start hue-lightswitch
 
 deploy-systemd:
-	sed "s/__HUE_HOST__/$(HUE_BRIDGE)/g" $(SERVICE_TPL) > $(SERVICE_FILE)
-	sed "s/__DAEMON_USER__/$(DAEMON_USER)/g" $(SERVICE_TPL) > $(SERVICE_FILE)
+	cat $(SERVICE_TPL) | \
+		sed "s/__HUE_HOST__/$(HUE_BRIDGE)/g" | \
+		sed "s/__DAEMON_USER__/$(DAEMON_USER)/g" \
+		> $(SERVICE_FILE)
 	scp ./$(NAME).service $(TARGET):
 	ssh $(TARGET) sudo mv $(NAME).service /etc/systemd/system
 	ssh $(TARGET) sudo chown root:root /etc/systemd/system/$(NAME).service
