@@ -39,6 +39,7 @@ type Event struct {
 	TimeStr string    `json:"time"`
 	Time    time.Time `json:"-"`
 	Model   string    `json:"model"`
+	ID      int       `json:"id"`
 	BtnData string    `json:"data"`
 }
 
@@ -76,7 +77,7 @@ func (c *Client) ProcessEvent(bs []byte) error {
 func (c *Client) MatchEvent(e Event) *Mapping {
 	var sw *Switch
 	for _, s := range c.Switches {
-		if s.Model == e.Model {
+		if s.Model == e.Model && e.ID == e.ID {
 			sw = s
 			break
 		}

@@ -17,6 +17,7 @@ type Config struct {
 type Switch struct {
 	Name    string    `json:"name"`
 	Model   string    `json:"model"`
+	ID      int       `json:"id"`
 	Buttons []*Button `json:"buttons"`
 }
 
